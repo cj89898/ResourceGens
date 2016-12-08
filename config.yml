@@ -1,0 +1,8 @@
+#Resource Generators v1.0.0 created by cj89898
+
+#Time is in ticks (20 per second)
+#Format is <level>: <time>
+levels:
+  1: 80
+  2: 60
+  3: 40

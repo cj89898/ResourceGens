@@ -1,0 +1,31 @@
+name: ResourceGenerators
+version: 1.0.1
+description: Resource Generators
+author: cj89898
+website: http://www.cjservers.net/
+main: net.cjservers.resourcegens.Main
+commands:
+  resourcegens:
+    description: Displays help
+    usage: '/resourcegens'
+    aliases: [rg]
+
+permissions:
+  resourcegens.add:
+    description: Create a new generator
+    default: op
+  resourcegens.remove:
+    description: Remove a resource generator
+    default: op
+  resourcegens.list:
+    description: Lists generators
+    default: op
+  resourcegens.levels:
+    description: Lists levels
+    default: op
+  resourcegens.info:
+    description: Lists information about a generator
+    default: op
+  resourcegens.reload:
+    description: Reloads configs
+    default: op
