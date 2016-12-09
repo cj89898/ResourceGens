@@ -1,4 +1,4 @@
-#Resource Generators v1.0.0 created by cj89898
+#Resource Generators v1.1.1 created by cj89898
 
 #Time is in ticks (20 per second)
 #Format is <level>: <time>
@@ -6,3 +6,8 @@ levels:
   1: 80
   2: 60
   3: 40
+  
+#Upgrade prices is pricing * level
+#Format is <resource>: <price> Ex. COBBLESTONE: 50.0 (Use set price command if you have problems)
+Pricing:
+  default: 100.0

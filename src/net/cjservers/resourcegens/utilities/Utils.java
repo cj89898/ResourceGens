@@ -17,22 +17,21 @@ import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-
 public class Utils {
-	
+
 	Main plugin;
-	
+
 	public Utils(Main plugin) {
 		this.plugin = plugin;
-	}	
-	
+	}
+
 	FileConfiguration genConfig;
 
-	public Map<String, ResourceGen> createGenList(){
+	public Map<String, ResourceGen> createGenList() {
 		genConfig = Main.getInstance().genConfig;
 		Logger logger = plugin.getLogger();
 		Map<String, ResourceGen> resourceGens = new HashMap<>();
-		if(genConfig.getConfigurationSection("").getKeys(false).isEmpty()){
+		if (genConfig.getConfigurationSection("").getKeys(false).isEmpty()) {
 			return null;
 		}
 		genConfig.getConfigurationSection("").getKeys(false).forEach(str -> {
@@ -43,8 +42,8 @@ public class Utils {
 				logger.severe("you dun goofed @ " + str + ".resource");
 				return;
 			}
-			String owner = genConfig.getString(str+".owner");
-			String type = genConfig.getString(str+".type");
+			String owner = genConfig.getString(str + ".owner");
+			String type = genConfig.getString(str + ".type");
 			String world = genConfig.getString(str + ".world");
 			int x = genConfig.getInt(str + ".x");
 			int y = genConfig.getInt(str + ".y");
@@ -54,44 +53,45 @@ public class Utils {
 		});
 		return resourceGens;
 	}
+
 	private static final String DIRECTORY = "plugins/ResourceGens/";
-	
+
 	private static File getFile(String name) throws IOException {
 		File file = new File(DIRECTORY, name);
-		
+
 		return file.createNewFile() ? file : file.exists() ? file : null;
 	}
-	
+
 	public static FileConfiguration getConfiguration(String name) {
 		try {
 			File file = getFile(name);
-			
-			if(file != null) {
+
+			if (file != null) {
 				return YamlConfiguration.loadConfiguration(file);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-				}
-		return null;
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-	
+		return null;
+	}
+
 	public static void save(FileConfiguration configuration, String name) {
 		try {
 			File file = getFile(name);
-			
-			if(file != null) {
+
+			if (file != null) {
 				configuration.save(file);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-	
+	}
+
 	public static void reload(FileConfiguration configuration, String name) {
 		try {
 			File file = getFile(name);
-			
-			if(file != null) {
+
+			if (file != null) {
 				configuration = YamlConfiguration.loadConfiguration(file);
 				configuration.save(file);
 			}
@@ -99,12 +99,12 @@ public class Utils {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public static void reloadGens() {
 		Bukkit.getServer().getScheduler().cancelTasks(Main.getInstance());
 		Generation.Generator();
 	}
-	
+
 	public static String newGen(String owner, int level, String resource, String type, String name, Location loc) {
 		try {
 			Material.valueOf(resource);

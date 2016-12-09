@@ -45,6 +45,7 @@ public class Main extends JavaPlugin implements Listener {
 		fixConf();
 		conf = Utils.getConfiguration("config.yml");
 		genConfig = Utils.getConfiguration("generators.yml");
+		fixConf();
 		
 		version = getDescription().getVersion();
 		new DestroyGen(this);
@@ -85,7 +86,8 @@ public class Main extends JavaPlugin implements Listener {
 	}
 	
 	public void fixConf(){
-		if(!(confYml.exists())) {
+		if(!(confYml.exists()) || Utils.getConfiguration("config.yml").get("Pricing") == null){
+			confYml.delete();
 			saveDefaultConfig();
 			System.out.println("[ResourceGens] - Created config.yml");
 		}

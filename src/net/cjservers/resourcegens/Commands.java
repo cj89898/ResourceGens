@@ -122,12 +122,11 @@ public class Commands implements CommandExecutor {
 
 					ItemStack item = new ItemStack(Material.CHEST, 1);
 					ItemMeta itemMeta = item.getItemMeta();
-					itemMeta.setDisplayName(ChatColor.GOLD+"Generator");
-					itemMeta.setLore(Arrays.asList(ChatColor.GOLD+"Owner: "+ChatColor.GREEN+owner, 
-													ChatColor.GOLD+"Level: "+ChatColor.GREEN+level,
-													ChatColor.GOLD+"Item: "+ChatColor.GREEN+resource,
-													ChatColor.GOLD+"Type: "+ChatColor.GREEN+type,
-													ChatColor.GOLD+"Resource Gen"));
+					itemMeta.setDisplayName(ChatColor.GOLD + "Generator");
+					itemMeta.setLore(Arrays.asList(ChatColor.GOLD + "Owner: " + ChatColor.GREEN + owner,
+							ChatColor.GOLD + "Level: " + ChatColor.GREEN + level,
+							ChatColor.GOLD + "Item: " + ChatColor.GREEN + resource,
+							ChatColor.GOLD + "Type: " + ChatColor.GREEN + type, ChatColor.GOLD + "Resource Gen"));
 					item.setItemMeta(itemMeta);
 					Bukkit.getPlayer(owner).getInventory().addItem(item);
 
@@ -258,6 +257,29 @@ public class Commands implements CommandExecutor {
 					sender.sendMessage(ChatColor.GOLD + "Levels: "
 							+ Main.getInstance().conf.getConfigurationSection("levels").getKeys(false));
 					return true;
+				} else if ((args.length > 2) && (args[0].equalsIgnoreCase("setprice"))) {
+					if (!(p.hasPermission("resourcegens.edit"))) {
+						sender.sendMessage(ChatColor.RED + "You do not have permission!");
+						return true;
+					}
+					String resource = args[1].toUpperCase();
+					try {
+						Material.valueOf(resource);
+					} catch (IllegalArgumentException e) {
+						sender.sendMessage(ChatColor.RED + "Invalid resource: " + ChatColor.GOLD + resource);
+						return true;
+					}
+					try {
+						Double.parseDouble(args[2]);
+					} catch (NumberFormatException e) {
+						sender.sendMessage(ChatColor.RED + "Not a valid price!");
+						return true;
+					}
+					Main.getInstance().conf.set("Pricing." + resource, Double.parseDouble(args[2]));
+					Utils.save(Main.getInstance().conf, "config.yml");
+					sender.sendMessage(ChatColor.GOLD + "Price for " + ChatColor.GREEN + resource + " set to "
+							+ Double.parseDouble(args[2]));
+					return true;
 				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("info"))) {
 					if (!(p.hasPermission("resourcegens.info"))) {
 						sender.sendMessage(ChatColor.RED + "You do not have permission!");
@@ -349,7 +371,12 @@ public class Commands implements CommandExecutor {
 								if (owner.equalsIgnoreCase(sender.getName())) {
 									int level = entry.getValue().getLevel();
 									int nextlvl = level + 1;
-									double price = level * Main.getInstance().conf.getInt("multiplier");
+									double price = level * Main.getInstance().conf.getInt("Pricing.default");
+									if (Main.getInstance().conf
+											.get("Pricing." + entry.getValue().getResource().toString()) != null) {
+										price = Main.getInstance().conf
+												.getDouble("Pricing." + entry.getValue().getResource().toString());
+									}
 									if (!(Main.getInstance().conf.contains("levels." + (nextlvl)))) {
 										sender.sendMessage(ChatColor.GREEN + "You are at the max level!");
 										return true;
@@ -439,6 +466,7 @@ public class Commands implements CommandExecutor {
 		sender.sendMessage("/rg give <user> <level> <resource> <type> -- Give a user a generator");
 		sender.sendMessage("/rg makeowner <user> (name) -- Makes the user an owner of a generator");
 		sender.sendMessage("/rg settype <type> (name) -- Changes the type of a generator");
+		sender.sendMessage("/rg setprice <resource> <price> -- Changes the price for generator upgrade for a specific resource");
 		sender.sendMessage("/rg list -- Lists generators");
 		sender.sendMessage("/rg info (name) -- Lists information about a generator");
 		sender.sendMessage("/rg levels -- Lists valid levels");

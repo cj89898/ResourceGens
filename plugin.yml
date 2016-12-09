@@ -1,14 +1,18 @@
-name: ResourceGenerators
-version: 1.0.1
+name: ResourceGens
+version: 1.1.1
 description: Resource Generators
 author: cj89898
 website: http://www.cjservers.net/
 main: net.cjservers.resourcegens.Main
+softdepend: [Vault, WorldGuard]
 commands:
   resourcegens:
     description: Displays help
     usage: '/resourcegens'
     aliases: [rg]
+  upgrade:
+    description: Upgrades Generator to next level
+    usage: '/upgrade'
 
 permissions:
   resourcegens.add:
@@ -22,6 +26,9 @@ permissions:
     default: op
   resourcegens.levels:
     description: Lists levels
+    default: op
+  resourcegens.edit:
+    description: Edit configs
     default: op
   resourcegens.info:
     description: Lists information about a generator
