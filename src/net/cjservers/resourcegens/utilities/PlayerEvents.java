@@ -29,7 +29,7 @@ public class PlayerEvents implements Listener {
 		ItemStack item = e.getItemInHand();
 		List<String> lore = item.getItemMeta().getLore();
 
-		if (lore != null && lore.get(4).equals(ChatColor.GOLD + "Resource Gen")) {
+		if (lore != null && lore.size()>4 && lore.get(4).equals(ChatColor.GOLD + "Resource Gen")) {
 			String name = e.getPlayer().getName() + "Gen" + (int)(Math.random() * 10000);
 			while (Main.getInstance().genConfig.contains(name)) {
 				name = e.getPlayer().getName() + "Gen" + (int)(Math.random() * 10000);

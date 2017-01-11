@@ -45,7 +45,6 @@ public class Main extends JavaPlugin implements Listener {
 		fixConf();
 		conf = Utils.getConfiguration("config.yml");
 		genConfig = Utils.getConfiguration("generators.yml");
-		fixConf();
 		
 		version = getDescription().getVersion();
 		new DestroyGen(this);
@@ -54,7 +53,6 @@ public class Main extends JavaPlugin implements Listener {
 		getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
 
 		this.getCommand("resourcegens").setExecutor(new Commands(this));
-		this.getCommand("upgrade").setExecutor(new Commands(this));
 		
 		if(Bukkit.getPluginManager().isPluginEnabled("Vault")){
 			vaultEnabled = true;

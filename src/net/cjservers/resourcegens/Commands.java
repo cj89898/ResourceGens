@@ -87,7 +87,7 @@ public class Commands implements CommandExecutor {
 					sender.sendMessage(ChatColor.GREEN + "Resource Generator " + ChatColor.GOLD + name + ChatColor.GREEN
 							+ " Removed!");
 					return true;
-				} else if ((args.length > 1) && (args[0].equalsIgnoreCase("give"))) {
+				} else if ((args.length > 4) && (args[0].equalsIgnoreCase("give"))) {
 					if (!(p.hasPermission("resourcegens.add"))) {
 						sender.sendMessage(ChatColor.RED + "You do not have permission!");
 						return true;
@@ -330,6 +330,78 @@ public class Commands implements CommandExecutor {
 							}
 						}
 					}
+				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("upgrade"))) {
+					if (Main.getInstance().econEnabled && Main.getInstance().vaultEnabled) {
+						BlockIterator iter = new BlockIterator(p, 10);
+						Block lastBlock = iter.next();
+						while (iter.hasNext()) {
+							lastBlock = iter.next();
+							if (lastBlock.getType() == Material.AIR) {
+								continue;
+							}
+							break;
+						}
+						if (lastBlock.getType() == Material.CHEST) {
+							Location loc = lastBlock.getLocation();
+							String world = loc.getWorld().getName();
+							int x = loc.getBlockX();
+							int y = loc.getBlockY();
+							int z = loc.getBlockZ();
+							Map<String, ResourceGen> genList = Main.getInstance().getUtils().createGenList();
+							if (!(genList == null)) {
+								for (Entry<String, ResourceGen> entry : genList.entrySet()) {
+									String world1 = entry.getValue().getWorld();
+									int x1 = entry.getValue().getX();
+									int y1 = entry.getValue().getY();
+									int z1 = entry.getValue().getZ();
+									if (world.equalsIgnoreCase(world1) && x == x1 && y == y1 && z == z1) {
+										String gen = entry.getKey();
+										String owner = Main.getInstance().genConfig.getString(gen + ".owner");
+										if (!owner.equalsIgnoreCase("server")) {
+											owner = Bukkit.getPlayer(UUID.fromString(owner)).getName();
+										}
+										if (owner.equalsIgnoreCase(sender.getName())) {
+											int level = entry.getValue().getLevel();
+											int nextlvl = level + 1;
+											double price = level * Main.getInstance().conf.getInt("Pricing.default");
+											if (Main.getInstance().conf.get(
+													"Pricing." + entry.getValue().getResource().toString()) != null) {
+												price = Main.getInstance().conf.getDouble(
+														"Pricing." + entry.getValue().getResource().toString());
+											}
+											if (!(Main.getInstance().conf.contains("levels." + (nextlvl)))) {
+												sender.sendMessage(ChatColor.GREEN + "You are at the max level!");
+												return true;
+											}
+											EconomyResponse r = Vault.economy.withdrawPlayer(p, price);
+											if (r.transactionSuccess()) {
+												Main.getInstance().genConfig.set(gen + ".level", nextlvl);
+												sender.sendMessage(ChatColor.GREEN + "Generator upgraded to level "
+														+ ChatColor.GOLD + nextlvl);
+												Utils.save(Main.getInstance().genConfig, "generators.yml");
+												Utils.reloadGens();
+												return true;
+											} else {
+												sender.sendMessage(ChatColor.RED + "You need " + price
+														+ " to purchase an upgrade to level " + ChatColor.GOLD
+														+ nextlvl);
+												return true;
+											}
+										} else {
+											sender.sendMessage(ChatColor.RED + "You do not own this generator!");
+											return true;
+										}
+									}
+								}
+							}
+						} else{
+							sender.sendMessage(ChatColor.RED + "This is not a generator");
+						}
+
+					} else {
+						sender.sendMessage("Vault Economy is not enabled on this server!");
+					}
+					return true;
 				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("reload"))) {
 					if (!(p.hasPermission("resourcegens.reload"))) {
 						sender.sendMessage(ChatColor.RED + "You do not have permission!");
@@ -339,74 +411,7 @@ public class Commands implements CommandExecutor {
 					return true;
 				}
 				helpMenu(sender);
-			} else if (cmd.getName().equalsIgnoreCase("upgrade")) {
-				if (Main.getInstance().econEnabled && Main.getInstance().vaultEnabled) {
-					BlockIterator iter = new BlockIterator(p, 10);
-					Block lastBlock = iter.next();
-					while (iter.hasNext()) {
-						lastBlock = iter.next();
-						if (lastBlock.getType() == Material.AIR) {
-							continue;
-						}
-						break;
-					}
-					Location loc = lastBlock.getLocation();
-					String world = loc.getWorld().getName();
-					int x = loc.getBlockX();
-					int y = loc.getBlockY();
-					int z = loc.getBlockZ();
-					Map<String, ResourceGen> genList = Main.getInstance().getUtils().createGenList();
-					if (!(genList == null)) {
-						for (Entry<String, ResourceGen> entry : genList.entrySet()) {
-							String world1 = entry.getValue().getWorld();
-							int x1 = entry.getValue().getX();
-							int y1 = entry.getValue().getY();
-							int z1 = entry.getValue().getZ();
-							if (world.equalsIgnoreCase(world1) && x == x1 && y == y1 && z == z1) {
-								String gen = entry.getKey();
-								String owner = Main.getInstance().genConfig.getString(gen + ".owner");
-								if (!owner.equalsIgnoreCase("server")) {
-									owner = Bukkit.getPlayer(UUID.fromString(owner)).getName();
-								}
-								if (owner.equalsIgnoreCase(sender.getName())) {
-									int level = entry.getValue().getLevel();
-									int nextlvl = level + 1;
-									double price = level * Main.getInstance().conf.getInt("Pricing.default");
-									if (Main.getInstance().conf
-											.get("Pricing." + entry.getValue().getResource().toString()) != null) {
-										price = Main.getInstance().conf
-												.getDouble("Pricing." + entry.getValue().getResource().toString());
-									}
-									if (!(Main.getInstance().conf.contains("levels." + (nextlvl)))) {
-										sender.sendMessage(ChatColor.GREEN + "You are at the max level!");
-										return true;
-									}
-									EconomyResponse r = Vault.economy.withdrawPlayer(p, price);
-									if (r.transactionSuccess()) {
-										Main.getInstance().genConfig.set(gen + ".level", nextlvl);
-										sender.sendMessage(ChatColor.GREEN + "Generator upgraded to level "
-												+ ChatColor.GOLD + nextlvl);
-										Utils.save(Main.getInstance().genConfig, "generators.yml");
-										Utils.reloadGens();
-										return true;
-									} else {
-										sender.sendMessage(ChatColor.RED + "You need " + price
-												+ " to purchase an upgrade to level " + ChatColor.GOLD + nextlvl);
-										return true;
-									}
-								} else {
-									sender.sendMessage(ChatColor.RED + "You do not own this generator!");
-									return true;
-								}
-							}
-						}
-					}
-				} else {
-					sender.sendMessage("Vault Economy is not enabled on this server!");
-				}
-				return true;
 			}
-			return true;
 		} else {
 			if (cmd.getName().equalsIgnoreCase("resourcegens")) {
 				if ((args.length > 0) && (args[0].equalsIgnoreCase("add"))) {
@@ -422,6 +427,46 @@ public class Commands implements CommandExecutor {
 					Utils.save(Main.getInstance().genConfig, "generators.yml");
 					sender.sendMessage(ChatColor.GREEN + "Resource Generator " + ChatColor.GOLD + name + ChatColor.GREEN
 							+ " Removed!");
+					return true;
+				} else if ((args.length > 4) && (args[0].equalsIgnoreCase("give"))) {
+					String owner = args[1];
+					int level = Integer.valueOf(args[2]);
+					String resource = args[3].toUpperCase();
+					String type = args[4];
+					if (Bukkit.getPlayer(owner) == null) {
+						sender.sendMessage(ChatColor.RED + "Invalid Player!");
+						return true;
+					}
+					String b4 = "" + Main.getInstance().conf.getConfigurationSection("levels").getKeys(false);
+					String levels = b4.substring(1, b4.length() - 1);
+					if (!(Main.getInstance().conf.getConfigurationSection("levels").contains("" + level))) {
+						sender.sendMessage(
+								ChatColor.RED + "Invalid Level!\n" + ChatColor.GREEN + "Valid Levels: " + levels);
+						return true;
+					}
+					try {
+						Material.valueOf(resource);
+					} catch (IllegalArgumentException e) {
+						sender.sendMessage(ChatColor.RED + "Invalid resource: " + ChatColor.GOLD + resource);
+						return true;
+					}
+					if (type.equalsIgnoreCase("always") || type.equalsIgnoreCase("online")) {
+						type = type.toLowerCase();
+					} else {
+						sender.sendMessage(ChatColor.RED + "Type must be 'always' or 'online'");
+						return true;
+					}
+
+					ItemStack item = new ItemStack(Material.CHEST, 1);
+					ItemMeta itemMeta = item.getItemMeta();
+					itemMeta.setDisplayName(ChatColor.GOLD + "Generator");
+					itemMeta.setLore(Arrays.asList(ChatColor.GOLD + "Owner: " + ChatColor.GREEN + owner,
+							ChatColor.GOLD + "Level: " + ChatColor.GREEN + level,
+							ChatColor.GOLD + "Item: " + ChatColor.GREEN + resource,
+							ChatColor.GOLD + "Type: " + ChatColor.GREEN + type, ChatColor.GOLD + "Resource Gen"));
+					item.setItemMeta(itemMeta);
+					Bukkit.getPlayer(owner).getInventory().addItem(item);
+
 					return true;
 				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("list"))) {
 					if (Main.getInstance().genConfig.getConfigurationSection("").getKeys(false).isEmpty()) {
@@ -460,17 +505,29 @@ public class Commands implements CommandExecutor {
 	private void helpMenu(CommandSender sender) {
 		sender.sendMessage(
 				ChatColor.GOLD + "-------------Resource Generators v" + Main.getInstance().version + "-------------");
-		sender.sendMessage(
-				"/rg add <level> <resource> <name> (owner) (type) -- Make the chest you're looking at into a generator named x with level x");
-		sender.sendMessage("/rg remove <name> -- Removes a generator");
-		sender.sendMessage("/rg give <user> <level> <resource> <type> -- Give a user a generator");
-		sender.sendMessage("/rg makeowner <user> (name) -- Makes the user an owner of a generator");
-		sender.sendMessage("/rg settype <type> (name) -- Changes the type of a generator");
-		sender.sendMessage("/rg setprice <resource> <price> -- Changes the price for generator upgrade for a specific resource");
-		sender.sendMessage("/rg list -- Lists generators");
-		sender.sendMessage("/rg info (name) -- Lists information about a generator");
-		sender.sendMessage("/rg levels -- Lists valid levels");
-		sender.sendMessage("/rg reload -- Reloads Configs");
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage(
+					"/rg add <level> <resource> <name> (owner) (type) -- Make the chest you're looking at into a generator named x with level x");
+		if (sender.hasPermission("resourcegens.remove"))
+			sender.sendMessage("/rg remove <name> -- Removes a generator");
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage("/rg give <user> <level> <resource> <type> -- Give a user a generator");
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage("/rg makeowner <user> (name) -- Makes the user an owner of a generator");
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage("/rg settype <type> (name) -- Changes the type of a generator");
+		if (sender.hasPermission("resourcegens.edit"))
+			sender.sendMessage(
+					"/rg setprice <resource> <price> -- Changes the price for generator upgrade for a specific resource");
+		if (sender.hasPermission("resourcegens.list"))
+			sender.sendMessage("/rg list -- Lists generators");
+		if (sender.hasPermission("resourcegens.info"))
+			sender.sendMessage("/rg info (name) -- Lists information about a generator");
+		if (sender.hasPermission("resourcegens.levels"))
+			sender.sendMessage("/rg levels -- Lists valid levels");
+		sender.sendMessage("/rg upgrade -- Upgrades the generator you are looking at for money");
+		if (sender.hasPermission("resourcegens.reload"))
+			sender.sendMessage("/rg reload -- Reloads Configs");
 	}
 
 	private void listInfo(String gen, CommandSender sender) {

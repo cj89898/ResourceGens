@@ -1,5 +1,5 @@
 name: ResourceGens
-version: 1.1.1
+version: 1.1.5
 description: Resource Generators
 author: cj89898
 website: http://www.cjservers.net/
@@ -10,9 +10,6 @@ commands:
     description: Displays help
     usage: '/resourcegens'
     aliases: [rg]
-  upgrade:
-    description: Upgrades Generator to next level
-    usage: '/upgrade'
 
 permissions:
   resourcegens.add:
