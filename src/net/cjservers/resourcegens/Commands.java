@@ -24,12 +24,13 @@ import net.cjservers.resourcegens.utilities.Utils;
 import net.milkbowl.vault.economy.EconomyResponse;
 
 public class Commands implements CommandExecutor {
+	
 	private final Main plugin;
-
+	
 	public Commands(Main plugin) {
 		this.plugin = plugin;
 	}
-
+	
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if (sender instanceof Player) {
@@ -59,7 +60,7 @@ public class Commands implements CommandExecutor {
 					Location loc = lastBlock.getLocation();
 					String owner;
 					String type;
-
+					
 					if (args.length > 4) {
 						owner = args[4];
 					} else {
@@ -96,40 +97,8 @@ public class Commands implements CommandExecutor {
 					int level = Integer.valueOf(args[2]);
 					String resource = args[3].toUpperCase();
 					String type = args[4];
-					if (Bukkit.getPlayer(owner) == null) {
-						sender.sendMessage(ChatColor.RED + "Invalid Player!");
-						return true;
-					}
-					String b4 = "" + Main.getInstance().conf.getConfigurationSection("levels").getKeys(false);
-					String levels = b4.substring(1, b4.length() - 1);
-					if (!(Main.getInstance().conf.getConfigurationSection("levels").contains("" + level))) {
-						sender.sendMessage(
-								ChatColor.RED + "Invalid Level!\n" + ChatColor.GREEN + "Valid Levels: " + levels);
-						return true;
-					}
-					try {
-						Material.valueOf(resource);
-					} catch (IllegalArgumentException e) {
-						sender.sendMessage(ChatColor.RED + "Invalid resource: " + ChatColor.GOLD + resource);
-						return true;
-					}
-					if (type.equalsIgnoreCase("always") || type.equalsIgnoreCase("online")) {
-						type = type.toLowerCase();
-					} else {
-						sender.sendMessage(ChatColor.RED + "Type must be 'always' or 'online'");
-						return true;
-					}
-
-					ItemStack item = new ItemStack(Material.CHEST, 1);
-					ItemMeta itemMeta = item.getItemMeta();
-					itemMeta.setDisplayName(ChatColor.GOLD + "Generator");
-					itemMeta.setLore(Arrays.asList(ChatColor.GOLD + "Owner: " + ChatColor.GREEN + owner,
-							ChatColor.GOLD + "Level: " + ChatColor.GREEN + level,
-							ChatColor.GOLD + "Item: " + ChatColor.GREEN + resource,
-							ChatColor.GOLD + "Type: " + ChatColor.GREEN + type, ChatColor.GOLD + "Resource Gen"));
-					item.setItemMeta(itemMeta);
-					Bukkit.getPlayer(owner).getInventory().addItem(item);
-
+					Utils.giveGen(owner, level, resource, type, sender);
+					
 					return true;
 				} else if ((args.length > 1) && (args[0].equalsIgnoreCase("makeowner"))) {
 					if (!(p.hasPermission("resourcegens.add"))) {
@@ -329,6 +298,8 @@ public class Commands implements CommandExecutor {
 								}
 							}
 						}
+						sender.sendMessage(ChatColor.RED + "You must be looking at a generator!");
+						return true;
 					}
 				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("upgrade"))) {
 					if (Main.getInstance().econEnabled && Main.getInstance().vaultEnabled) {
@@ -366,7 +337,7 @@ public class Commands implements CommandExecutor {
 											double price = level * Main.getInstance().conf.getInt("Pricing.default");
 											if (Main.getInstance().conf.get(
 													"Pricing." + entry.getValue().getResource().toString()) != null) {
-												price = Main.getInstance().conf.getDouble(
+												price = level * Main.getInstance().conf.getDouble(
 														"Pricing." + entry.getValue().getResource().toString());
 											}
 											if (!(Main.getInstance().conf.contains("levels." + (nextlvl)))) {
@@ -379,7 +350,7 @@ public class Commands implements CommandExecutor {
 												sender.sendMessage(ChatColor.GREEN + "Generator upgraded to level "
 														+ ChatColor.GOLD + nextlvl);
 												Utils.save(Main.getInstance().genConfig, "generators.yml");
-												Utils.reloadGens();
+												Utils.reloadGen(gen);
 												return true;
 											} else {
 												sender.sendMessage(ChatColor.RED + "You need " + price
@@ -393,14 +364,94 @@ public class Commands implements CommandExecutor {
 										}
 									}
 								}
+								sender.sendMessage(ChatColor.RED + "You need to be looking at a generator");
 							}
-						} else{
-							sender.sendMessage(ChatColor.RED + "This is not a generator");
+						} else {
+							sender.sendMessage(ChatColor.RED + "You need to be looking at a generator");
 						}
-
+						
 					} else {
 						sender.sendMessage("Vault Economy is not enabled on this server!");
 					}
+					return true;
+				} else if ((args.length > 1) && (args[0].equalsIgnoreCase("setlevel"))) {
+					if (!(p.hasPermission("resourcegens.add"))) {
+						sender.sendMessage(ChatColor.RED + "You do not have permission!");
+						return true;
+					}
+					if (args.length > 2) {
+						String gen = args[2];
+						if (!(Main.getInstance().genConfig.contains(gen))) {
+							sender.sendMessage(
+									ChatColor.GOLD + "No Resource Generator with name: " + ChatColor.AQUA + gen);
+							sender.sendMessage(ChatColor.GOLD + "Type " + ChatColor.AQUA + "/rg list" + ChatColor.GOLD
+									+ " to get all generators!");
+							return true;
+						}
+						int level;
+						try {
+							level = Integer.parseInt(args[1]);
+						} catch (NumberFormatException e) {
+							sender.sendMessage(ChatColor.RED + "Not a valid level!");
+							return true;
+						}
+						if (!(Main.getInstance().conf.contains("levels." + (level)))) {
+							sender.sendMessage(ChatColor.RED + "Not a valid level!");
+							return true;
+						}
+						Main.getInstance().genConfig.set(gen + ".level", level);
+						sender.sendMessage(ChatColor.GREEN + "Generator set to level " + ChatColor.GOLD + level);
+						Utils.save(Main.getInstance().genConfig, "generators.yml");
+						Utils.reloadGen(gen);
+						return true;
+					} else {
+						BlockIterator iter = new BlockIterator(p, 10);
+						Block lastBlock = iter.next();
+						while (iter.hasNext()) {
+							lastBlock = iter.next();
+							if (lastBlock.getType() == Material.AIR) {
+								continue;
+							}
+							break;
+						}
+						if (lastBlock.getType() == Material.CHEST) {
+							Location loc = lastBlock.getLocation();
+							String world = loc.getWorld().getName();
+							int x = loc.getBlockX();
+							int y = loc.getBlockY();
+							int z = loc.getBlockZ();
+							Map<String, ResourceGen> genList = Main.getInstance().getUtils().createGenList();
+							if (!(genList == null)) {
+								for (Entry<String, ResourceGen> entry : genList.entrySet()) {
+									String world1 = entry.getValue().getWorld();
+									int x1 = entry.getValue().getX();
+									int y1 = entry.getValue().getY();
+									int z1 = entry.getValue().getZ();
+									if (world.equalsIgnoreCase(world1) && x == x1 && y == y1 && z == z1) {
+										String gen = entry.getKey();
+										int level;
+										try {
+											level = Integer.parseInt(args[1]);
+										} catch (NumberFormatException e) {
+											sender.sendMessage(ChatColor.RED + "Not a valid level!");
+											return true;
+										}
+										if (!(Main.getInstance().conf.contains("levels." + (level)))) {
+											sender.sendMessage(ChatColor.RED + "Not a valid level!");
+											return true;
+										}
+										Main.getInstance().genConfig.set(gen + ".level", level);
+										sender.sendMessage(
+												ChatColor.GREEN + "Generator set to level " + ChatColor.GOLD + level);
+										Utils.save(Main.getInstance().genConfig, "generators.yml");
+										Utils.reloadGen(gen);
+										return true;
+									}
+								}
+							}
+						}
+					}
+					sender.sendMessage(ChatColor.RED + "This is not a generator");
 					return true;
 				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("reload"))) {
 					if (!(p.hasPermission("resourcegens.reload"))) {
@@ -411,6 +462,7 @@ public class Commands implements CommandExecutor {
 					return true;
 				}
 				helpMenu(sender);
+				return true;
 			}
 		} else {
 			if (cmd.getName().equalsIgnoreCase("resourcegens")) {
@@ -456,7 +508,7 @@ public class Commands implements CommandExecutor {
 						sender.sendMessage(ChatColor.RED + "Type must be 'always' or 'online'");
 						return true;
 					}
-
+					
 					ItemStack item = new ItemStack(Material.CHEST, 1);
 					ItemMeta itemMeta = item.getItemMeta();
 					itemMeta.setDisplayName(ChatColor.GOLD + "Generator");
@@ -466,7 +518,7 @@ public class Commands implements CommandExecutor {
 							ChatColor.GOLD + "Type: " + ChatColor.GREEN + type, ChatColor.GOLD + "Resource Gen"));
 					item.setItemMeta(itemMeta);
 					Bukkit.getPlayer(owner).getInventory().addItem(item);
-
+					
 					return true;
 				} else if ((args.length > 0) && (args[0].equalsIgnoreCase("list"))) {
 					if (Main.getInstance().genConfig.getConfigurationSection("").getKeys(false).isEmpty()) {
@@ -501,35 +553,49 @@ public class Commands implements CommandExecutor {
 		}
 		return false;
 	}
-
+	
 	private void helpMenu(CommandSender sender) {
 		sender.sendMessage(
 				ChatColor.GOLD + "-------------Resource Generators v" + Main.getInstance().version + "-------------");
 		if (sender.hasPermission("resourcegens.add"))
-			sender.sendMessage(
-					"/rg add <level> <resource> <name> (owner) (type) -- Make the chest you're looking at into a generator named x with level x");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&a/rg add <level> <resource> <name> (owner) (type) &7-- &6Make the chest you're looking at into a generator"));
 		if (sender.hasPermission("resourcegens.remove"))
-			sender.sendMessage("/rg remove <name> -- Removes a generator");
-		if (sender.hasPermission("resourcegens.add"))
-			sender.sendMessage("/rg give <user> <level> <resource> <type> -- Give a user a generator");
-		if (sender.hasPermission("resourcegens.add"))
-			sender.sendMessage("/rg makeowner <user> (name) -- Makes the user an owner of a generator");
-		if (sender.hasPermission("resourcegens.add"))
-			sender.sendMessage("/rg settype <type> (name) -- Changes the type of a generator");
-		if (sender.hasPermission("resourcegens.edit"))
 			sender.sendMessage(
-					"/rg setprice <resource> <price> -- Changes the price for generator upgrade for a specific resource");
+					ChatColor.translateAlternateColorCodes('&', "&a/rg remove <name> &7-- &6Removes a generator"));
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&a/rg give <user> <level> <resource> <type> &7-- &6Give a user a generator"));
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&a/rg makeowner <user> (name) &7-- &6Makes the user an owner of a generator"));
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&a/rg settype <type> (name) &7-- &6Changes the type of a generator"));
+		if (sender.hasPermission("resourcegens.add"))
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&a/rg setlevel <level> (name) &7-- &6Sets the level of a generator"));
+		if (sender.hasPermission("resourcegens.edit"))
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&a/rg setprice <resource> <price> &7-- &6Changes the price for generator upgrade for a specific resource"));
 		if (sender.hasPermission("resourcegens.list"))
-			sender.sendMessage("/rg list -- Lists generators");
-		if (sender.hasPermission("resourcegens.info"))
-			sender.sendMessage("/rg info (name) -- Lists information about a generator");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a/rg list &7-- &6Lists generators"));
+		if (sender.hasPermission("resourcegens.info")) {
+			if (sender.hasPermission("resourcegens.info.other"))
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+						"&a/rg info (name) &7-- &6Lists information about a generator"));
+			else
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+						"&a/rg info &7-- &6Lists information about a generator"));
+		}
 		if (sender.hasPermission("resourcegens.levels"))
-			sender.sendMessage("/rg levels -- Lists valid levels");
-		sender.sendMessage("/rg upgrade -- Upgrades the generator you are looking at for money");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a/rg levels &7-- &6Lists valid levels"));
+		sender.sendMessage(
+				ChatColor.translateAlternateColorCodes('&', "&a/rg upgrade &7-- &6Upgrades a generator for money"));
 		if (sender.hasPermission("resourcegens.reload"))
-			sender.sendMessage("/rg reload -- Reloads Configs");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a/rg reload &7-- &6Reloads Configs"));
 	}
-
+	
 	private void listInfo(String gen, CommandSender sender) {
 		String world = Main.getInstance().genConfig.getString(gen + ".world");
 		int x = Main.getInstance().genConfig.getInt(gen + ".x");
@@ -551,7 +617,7 @@ public class Commands implements CommandExecutor {
 		sender.sendMessage(ChatColor.GREEN + "  Location (x, y, z): " + ChatColor.GOLD + x + ChatColor.GREEN + ", "
 				+ ChatColor.GOLD + y + ChatColor.GREEN + ", " + ChatColor.GOLD + z);
 	}
-
+	
 	private void reload(CommandSender sender) {
 		Main.getInstance().fixConf();
 		Utils.reload(Main.getInstance().conf, "config.yml");
